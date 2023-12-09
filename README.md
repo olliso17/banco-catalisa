@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
+  <a href="https://www.catalisa.io/" target="blank"><img src="https://static.wixstatic.com/media/18218e_bb86cda9c93a447395a183ce7ed10290~mv2.png/v1/fill/w_319,h_77,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/logo_catalisa_baixa.png" width="200" alt="Nest Logo" /></a>
 </p>
 
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
