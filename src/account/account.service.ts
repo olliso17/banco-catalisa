@@ -18,52 +18,76 @@ export class AccountService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) { }
+
   async create(createAccountDto: CreateAccountDto): Promise<Account> {
     try {
-      const id = createAccountDto.user_id
-      const user = await this.userRepository.findOne({where:{id}})
-      if(!user){
-        throw new Error('User not found')
+
+      const id = createAccountDto.user_id;
+
+      const user = await this.userRepository.findOne({ where: { id } });
+
+      if (!user) {
+        throw new Error('User not found');
       }
 
-      const account = this.accountRepository.create(createAccountDto)
+      const account = this.accountRepository.create(createAccountDto);
 
       if (account.type === 'Corrente') {
-        account.valueType = '001'
+        account.valueType = '001';
       }
+
       if (account.type === 'Poupança') {
-        account.valueType = '005'
+        account.valueType = '005';
       }
-      await this.accountRepository.save(account)
-      if(account.balance > 0){
+
+      await this.accountRepository.save(account);
+
+      if (account.balance > 0) {
+
         const historic: Historic = this.historicRepository.create({
           account_id: account.id,
           value_deposit: account.balance,
         });
+
         await this.historicRepository.save(historic);
+
       }
-   
-      return account
+
+      return account;
+
     } catch (error) {
-      throw { success: false, message: error.message };
+
+      throw new Error(error.message);
     }
 
   }
+
   async deposit(id: string, depositAccountDto: DepositAccountDto) {
     try {
-      const account = await this.accountRepository.findOne({ where: { id } });
+
+      const account = await this.accountRepository.findOne({
+        where: { id }
+      });
+
       if (!account) {
         throw new Error('Account not found');
       }
-      depositAccountDto.account_id = account.id
-      depositAccountDto.user_id = account.user_id
-      const historic = await this.historicRepository.create(depositAccountDto)
+      depositAccountDto.account_id = account.id;
+
+      depositAccountDto.user_id = account.user_id;
+
+      const historic = await this.historicRepository.create(depositAccountDto);
+
       account.balance += historic.value_deposit;
+
       account.updated_at = new Date();
+
       await this.historicRepository.save(historic);
-      return await this.accountRepository.save(account)
+
+      return await this.accountRepository.save(account);
+
     } catch (error) {
-      throw { success: false, message: error.message }
+      throw new Error(error.message);
     }
 
 
@@ -71,35 +95,63 @@ export class AccountService {
 
   async withdraw(id: string, withdrawAccountDto: WithdrawAccountDto) {
     try {
+
       const account = await this.accountRepository.findOne({ where: { id } });
+
       if (!account) {
         throw new Error('Account not found');
       }
-      withdrawAccountDto.account_id = account.id
-      withdrawAccountDto.user_id = account.user_id
-      const historic = await this.historicRepository.create(withdrawAccountDto)
+
+      withdrawAccountDto.account_id = account.id;
+
+      withdrawAccountDto.user_id = account.user_id;
+
+      const historic = await this.historicRepository.create(withdrawAccountDto);
+
+      if (account.balance < historic.value_withdraw) {
+        throw new Error('You have no balance');
+      }
+
       account.balance -= historic.value_withdraw;
+
       account.updated_at = new Date();
+
       await this.historicRepository.save(historic);
-      return await this.accountRepository.save(account)
+
+      return await this.accountRepository.save(account);
+
     } catch (error) {
-      throw { success: false, message: error.message }
+
+      throw new Error(error.message);
+
     }
   }
+
   async findAll() {
     try {
-      const accounts = await this.accountRepository.find({relations:['historics']})
-      return accounts
+
+      const accounts = await this.accountRepository.find({ relations: ['historics'] });
+
+      return accounts;
+
     } catch (error) {
-       throw new Error(error.message);
+
+      throw new Error(error.message);
+
     }
   }
+
   async findByUserId(user_id: string) {
     try {
-      const accounts = await this.accountRepository.find({where:{user_id},relations:['historics']})
-      return accounts
+
+      const accounts = await this.accountRepository.find({ where: { user_id }, relations: ['historics'] });
+
+      return accounts;
+
     } catch (error) {
-       throw new Error(error.message);
+
+      throw new Error(error.message);
+      
     }
   }
 
