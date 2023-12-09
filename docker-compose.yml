@@ -1,0 +1,37 @@
+version: "3"
+services:
+  src:
+    build:
+      context: ./
+      dockerfile: DockerFile
+    command: npm i
+    ports:
+      - 8080:8000
+    depends_on:
+      - postgres
+  postgres:
+    image: "postgres"
+    # env_file:
+    #   - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      PGDATA: /data/postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+  pgadmin-compose:
+    image: dpage/pgadmin4
+    # env_file:
+    #   - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-banco_catalisa@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-bancoCatalisa}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "54322:80"
+    depends_on:
+      - postgres
+   
+  
