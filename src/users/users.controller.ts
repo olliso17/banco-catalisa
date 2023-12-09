@@ -11,35 +11,30 @@ export class UsersController {
   async create(@Body() createUserDto: CreateUserDto) {
     try {
       const user = await this.usersService.create(createUserDto);
-      return { success: true, data: user};
+      return { success: true, message: 'Successfully created'};
     } catch (error) {
       return { success: false, message: error.message };
     }
   }
 
-  @Get()
-  async findAll() {
+  @Patch('update/:id')
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     try {
-      const users = await this.usersService.findAll();
-      return { success: true, data: users };
+      const user = await this.usersService.update(id, updateUserDto);
+      return { success: true, message: 'Successfully updated'};
+
     } catch (error) {
       return { success: false, message: error.message };
     }
   }
- 
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  @Patch('deactivate/:id')
+  async deactivated(@Param('id') id: string) {
+    try {
+      await this.usersService.deactivated(id);
+      return { success: false, message: 'Successfully deactivated' };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
   }
 }

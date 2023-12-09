@@ -5,21 +5,24 @@ import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { Account } from 'src/account/entities/account.entity';
 
 const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye"
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>
+    private userRepository: Repository<User>,
+    @InjectRepository(Account)
+    private accountRepository: Repository<Account>
   ) { }
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
 
       createUserDto.cpf = bcrypt.hashSync(createUserDto.cpf, salt);
       createUserDto.password = bcrypt.hashSync(createUserDto.password, salt);
-
-      const user = this.userRepository.create(createUserDto);
+     
+      const user = await this.userRepository.create(createUserDto);
       user.active = true;
 
       return await this.userRepository.save(user);
@@ -29,26 +32,8 @@ export class UsersService {
     }
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.userRepository.find({
-      relations: ['accounts']
-    });
-    return users
-  }
-
-  async findOne(id: string): Promise<User> {
-    const user = await this.userRepository.findOneOrFail({ where: { id }, relations: ['accounts'] });
-    return user;
-  }
-
-  async findByCpf(cpf: string): Promise<User> {
-    cpf = bcrypt.hashSync(cpf, salt);
-    const user = await this.userRepository.findOneOrFail({ where: { cpf }, relations: ['accounts'] });
-    return user;
-  }
-
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id }, relations: ['accounts'] });
+    const user = await this.userRepository.findOneOrFail({ where: { id, active:true}, relations: ['accounts'] });
 
     if (!user) {
       throw new Error('Usuário não encontrado');
@@ -71,15 +56,20 @@ export class UsersService {
 
     return user;
   }
-
-
-  async remove(id: string) {
-    const user = await this.findOne(id);
-
+  async deactivated(id: string) {
+    const user = await this.userRepository.findOneOrFail({ where: { id, active:true}, relations: ['accounts'] });
     if (!user) {
       throw new Error('User not found');
     }
+    user.active = false;
+    user.deactivated_at = new Date();
 
-    return this.userRepository.remove(user);
+    user.accounts.map(async account =>{
+      account.active = false
+      account.deactivated_at = new Date()
+      await this.accountRepository.save(account)
+    })
+
+    return this.userRepository.save(user);
   }
 }
