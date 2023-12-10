@@ -74,6 +74,37 @@ export class AccountController {
     }
   }
 
+  @Get('deposits/:id')
+  async findByDeposit(@Param('id') account_id: string) {
+
+    try {
+
+      const historics_deposit = await this.accountService.findByDeposit(account_id);
+
+      return { success: true, data: historics_deposit };
+
+    } catch (error) {
+
+      return { success: false, message: error.message };
+
+    }
+  }
+  @Get('withdraws/:id')
+  async findByWithdraw(@Param('id') account_id: string) {
+
+    try {
+
+      const historics_withdraw = await this.accountService.findByWithdraw(account_id);
+
+      return { success: true, data: historics_withdraw };
+
+    } catch (error) {
+
+      return { success: false, message: error.message };
+
+    }
+  }
+
   @Patch('deposit') 
   async deposit(@Param('id') id: string, @Body() depositAccountDto: DepositAccountDto) {
 

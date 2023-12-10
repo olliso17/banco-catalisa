@@ -213,10 +213,27 @@ export class AccountService {
 
     }
   }
-  async findByDeposit(id: string) {
+  async findByDeposit(account_id: string) {
     try {
 
-      const historics = await this.historicRepository.find({ where: { account_id:id, value_deposit:true}, relations: ['historics'] });
+      const historics = await this.historicRepository.find({
+         where: { account_id:account_id, value_deposit:true}
+      });
+
+      return historics;
+
+    } catch (error) {
+
+      throw new Error(error.message);
+
+    }
+  }
+  async findByWithdraw(account_id: string) {
+    try {
+
+      const historics = await this.historicRepository.find({
+         where: { account_id:account_id, value_withdraw:true}
+      });
 
       return historics;
 
