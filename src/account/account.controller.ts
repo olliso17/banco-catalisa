@@ -82,12 +82,15 @@ export class AccountController {
       const result = await this.accountService.withdraw(id, withdrawAccountDto);
 
       return { success: true, data: result };
-
+      
     } catch (error) {
 
       return { success: false, message: error.message };
-
     }
   }
 
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.accountService.remove(id);
+  // }
 }

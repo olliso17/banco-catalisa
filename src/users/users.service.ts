@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Account } from 'src/account/entities/account.entity';
+import { Historic } from 'src/historic/entities/historic.entity';
 
 const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye"
 @Injectable()
@@ -14,7 +15,9 @@ export class UsersService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Account)
-    private accountRepository: Repository<Account>
+    private accountRepository: Repository<Account>,
+    @InjectRepository(Historic)
+    private historicRepository: Repository<Historic>
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -100,7 +103,7 @@ export class UsersService {
   async deactivated(id: string) {
 
     const user = await this.userRepository.findOneOrFail({
-      where: { id, active: true }, relations: ['accounts']
+      where: { id }, relations: ['accounts', 'accounts.historics']
     });
 
     if (!user) {
@@ -108,21 +111,41 @@ export class UsersService {
       throw new Error('User not found');
 
     }
+    if(user.active !== true){
+      throw new Error('User is already deactivated');
 
+    }
     user.active = false;
 
     user.deactivated_at = new Date();
 
     user.accounts.map(async account => {
+      if (account.active === true) {
+        account.active = false;
 
-      account.active = false;
+        account.deactivated_at = new Date();
 
-      account.deactivated_at = new Date();
+        await this.accountRepository.save(account);
 
-      await this.accountRepository.save(account);
+      }
+
+      account.historics.map(async historic => {
+        if (historic.active === true) {
+
+          historic.active = false;
+
+          historic.deactivated_at = new Date();
+          
+          await this.historicRepository.save(historic);
+
+        }
+
+      })
 
     });
 
     return this.userRepository.save(user);
   }
+
+
 }

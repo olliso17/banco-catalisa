@@ -21,6 +21,9 @@ export class AccountService {
 
   async create(createAccountDto: CreateAccountDto): Promise<Account> {
     try {
+      let lastAccountNumber = 0;
+      const newAccountNumber = lastAccountNumber + 1;
+      const paddedNumber = newAccountNumber.toString().padStart(6, '0');
 
       const id = createAccountDto.user_id;
 
@@ -32,28 +35,72 @@ export class AccountService {
 
       const account = this.accountRepository.create(createAccountDto);
 
-      if (account.type === 'Corrente') {
-        account.valueType = '001';
+      const accounts = await this.accountRepository.find({
+        order: { created_at: 'DESC' },
+      });
+     
+      if(accounts.length > 0){
+        accounts.map(
+          async accountCreated=>{
+            if(accountCreated.id !== account.id){
+              const newAccountNumber = parseFloat(accountCreated.number_account) + 1;
+              const paddedNumber = newAccountNumber.toString().padStart(6, '0');
+              account.number_account = `0000${paddedNumber}`.slice(-6);
+
+              if (account.type === 'Corrente') {
+                account.valueType = '001';
+              }
+        
+              if (account.type === 'Poupança') {
+                account.valueType = '005';
+              }
+        
+              await this.accountRepository.save(account);
+        
+              if (account.balance > 0) {
+        
+                const historic: Historic = this.historicRepository.create({
+                  account_id: account.id,
+                  value_deposit: account.balance,
+                });
+        
+                await this.historicRepository.save(historic);
+        
+              }
+        
+              return account;
+            }
+          }
+        );
+      }
+      if(accounts.length ===0){
+        
+        account.number_account = `0000${paddedNumber}`.slice(-6);
+
+        if (account.type === 'Corrente') {
+          account.valueType = '001';
+        }
+  
+        if (account.type === 'Poupança') {
+          account.valueType = '005';
+        }
+  
+        await this.accountRepository.save(account);
+  
+        if (account.balance > 0) {
+  
+          const historic: Historic = this.historicRepository.create({
+            account_id: account.id,
+            value_deposit: account.balance,
+          });
+  
+          await this.historicRepository.save(historic);
+  
+        }
+  
+        return account;
       }
 
-      if (account.type === 'Poupança') {
-        account.valueType = '005';
-      }
-
-      await this.accountRepository.save(account);
-
-      if (account.balance > 0) {
-
-        const historic: Historic = this.historicRepository.create({
-          account_id: account.id,
-          value_deposit: account.balance,
-        });
-
-        await this.historicRepository.save(historic);
-
-      }
-
-      return account;
 
     } catch (error) {
 
@@ -151,10 +198,10 @@ export class AccountService {
     } catch (error) {
 
       throw new Error(error.message);
-      
+
     }
   }
-
+  
   // findOne(id: string) {
   //   return `This action returns a  account`;
   // }

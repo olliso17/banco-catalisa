@@ -31,6 +31,9 @@ export class Account {
     @Column({default:0.0})
     balance: number;
 
+    @Column({unique:true})
+    number_account: string
+        
     @ManyToOne(() => User, user => user.id)
     @JoinColumn({ name: 'user_id' })
     user: User;
