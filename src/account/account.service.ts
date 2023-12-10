@@ -19,7 +19,7 @@ export class AccountService {
     private userRepository: Repository<User>,
   ) { }
 
-  async create(createAccountDto: CreateAccountDto): Promise<Account> {
+  async create(createAccountDto: CreateAccountDto):Promise<Account>{
     try {
       let lastAccountNumber = 0;
       const newAccountNumber = lastAccountNumber + 1;
@@ -61,7 +61,8 @@ export class AccountService {
         
                 const historic: Historic = this.historicRepository.create({
                   account_id: account.id,
-                  value_deposit: account.balance,
+                  value_deposit: true,
+                  ammount: account.balance,
                 });
         
                 await this.historicRepository.save(historic);
@@ -87,16 +88,18 @@ export class AccountService {
   
         await this.accountRepository.save(account);
   
-        if (account.balance > 0) {
+        if (parseFloat(account.balance.toString()) > 0) {
   
           const historic: Historic = this.historicRepository.create({
             account_id: account.id,
-            value_deposit: account.balance,
+            value_deposit: true,
+            ammount: account.balance,
           });
   
           await this.historicRepository.save(historic);
   
         }
+        console.log(`${account.balance}`)
   
         return account;
       }
@@ -109,23 +112,21 @@ export class AccountService {
 
   }
 
-  async deposit(id: string, depositAccountDto: DepositAccountDto) {
+  async deposit(depositAccountDto: DepositAccountDto) {
     try {
 
       const account = await this.accountRepository.findOne({
-        where: { id }
+        where: { id: depositAccountDto.account_id }
       });
 
       if (!account) {
         throw new Error('Account not found');
       }
-      depositAccountDto.account_id = account.id;
-
-      depositAccountDto.user_id = account.user_id;
-
+      
       const historic = await this.historicRepository.create(depositAccountDto);
-
-      account.balance += historic.value_deposit;
+      account.balance = parseFloat(account.balance.toString());
+      historic.ammount = parseFloat(historic.ammount.toString());
+      account.balance += historic.ammount;
 
       account.updated_at = new Date();
 
@@ -140,26 +141,23 @@ export class AccountService {
 
   }
 
-  async withdraw(id: string, withdrawAccountDto: WithdrawAccountDto) {
+  async withdraw(withdrawAccountDto: WithdrawAccountDto) {
     try {
 
-      const account = await this.accountRepository.findOne({ where: { id } });
+      const account = await this.accountRepository.findOne({ where: { id:withdrawAccountDto.account_id } });
 
       if (!account) {
         throw new Error('Account not found');
       }
 
-      withdrawAccountDto.account_id = account.id;
-
-      withdrawAccountDto.user_id = account.user_id;
-
       const historic = await this.historicRepository.create(withdrawAccountDto);
-
-      if (account.balance < historic.value_withdraw) {
+      account.balance = parseFloat(account.balance.toString());
+      historic.ammount = parseFloat(historic.ammount.toString());
+      if (account.balance < historic.ammount) {
         throw new Error('You have no balance');
       }
 
-      account.balance -= historic.value_withdraw;
+      account.balance -= historic.ammount;
 
       account.updated_at = new Date();
 
@@ -202,9 +200,32 @@ export class AccountService {
     }
   }
   
-  // findOne(id: string) {
-  //   return `This action returns a  account`;
-  // }
+  async findOne(id: string) {
+    try {
+
+      const accounts = await this.accountRepository.findOne({ where: { id }, relations: ['historics'] });
+
+      return accounts;
+
+    } catch (error) {
+
+      throw new Error(error.message);
+
+    }
+  }
+  async findByDeposit(id: string) {
+    try {
+
+      const historics = await this.historicRepository.find({ where: { account_id:id, value_deposit:true}, relations: ['historics'] });
+
+      return historics;
+
+    } catch (error) {
+
+      throw new Error(error.message);
+
+    }
+  }
 
   // remove(id: string) {
   //   return `This action removes a  account`;

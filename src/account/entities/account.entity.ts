@@ -28,7 +28,7 @@ export class Account {
     @Column()
     valueType: string;
 
-    @Column({default:0.0})
+    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0, })
     balance: number;
 
     @Column({unique:true})

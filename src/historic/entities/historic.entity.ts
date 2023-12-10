@@ -25,17 +25,21 @@ export class Historic {
     @Column()
     account_id: string;
 
-    @Column({default:0.0})
-    value_deposit?: number;
+    @Column({default:false})
+    value_deposit?: boolean;
 
-    @Column({default:0.0})
-    value_withdraw?: number;
+    @Column({default:false})
+    value_withdraw?: boolean;
+
+    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0, })
+    ammount: number;
 
     constructor(
         props: {
             account_id: string;
-            value_deposit?: number | 0.0;
-            value_withdraw?: number|0.0;
+            ammount: number;
+            value_deposit?: boolean;
+            value_withdraw?: boolean;
         },
         id?: string,
     ){

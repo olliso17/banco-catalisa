@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Account } from 'src/account/entities/account.entity';
 import { Historic } from 'src/historic/entities/historic.entity';
+import { isCpf } from 'src/util/regext';
 
 const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye"
 @Injectable()
@@ -23,7 +24,9 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
 
     try {
-
+      if(!isCpf.test(createUserDto.cpf)){
+        throw new Error("Cpf needs at least 11 numeric characters");
+      }
       createUserDto.cpf = bcrypt.hashSync(createUserDto.cpf, salt);
 
       createUserDto.password = bcrypt.hashSync(createUserDto.password, salt);

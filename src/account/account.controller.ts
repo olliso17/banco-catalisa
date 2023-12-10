@@ -58,12 +58,28 @@ export class AccountController {
     }
   }
 
-  @Patch('deposit/:id') 
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+
+    try {
+
+      const account = await this.accountService.findOne(id);
+
+      return { success: true, data: account };
+
+    } catch (error) {
+
+      return { success: false, message: error.message };
+
+    }
+  }
+
+  @Patch('deposit') 
   async deposit(@Param('id') id: string, @Body() depositAccountDto: DepositAccountDto) {
 
     try {
 
-      const result = await this.accountService.deposit(id, depositAccountDto);
+      const result = await this.accountService.deposit(depositAccountDto);
 
       return { success: true, data: result };
 
@@ -74,12 +90,12 @@ export class AccountController {
     }
   }
   
-  @Patch('withdraw/:id')
+  @Patch('withdraw')
   async withdraw(@Param('id') id: string, @Body() withdrawAccountDto: WithdrawAccountDto) {
 
     try {
 
-      const result = await this.accountService.withdraw(id, withdrawAccountDto);
+      const result = await this.accountService.withdraw(withdrawAccountDto);
 
       return { success: true, data: result };
       
