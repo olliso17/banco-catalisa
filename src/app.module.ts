@@ -7,19 +7,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Historic } from './historic/entities/historic.entity';
 import { Account } from './account/entities/account.entity';
 import { User } from './users/entities/user.entity';
+import { dataSourceOptions } from 'db/data-source';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'root',
-      database: 'postgres',
-      entities: [User, Account, Historic], 
-      synchronize: true, 
-    }), 
+    TypeOrmModule.forRoot(dataSourceOptions), 
     UsersModule, AccountModule],
   controllers: [AppController],
   providers: [AppService],

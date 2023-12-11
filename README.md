@@ -43,10 +43,15 @@ $ npm run start:dev
 ## migration
 
 ```bash
-#depois que conectar fazer a migração das tabelas
 
-$ npm run typeorm migration:run
+  #exemplo para criar uma migration
+$ npm run migration:generate -- db/migrations/NewMigration
 
+# para rodar
+$ npm run migration:run
+
+#para reverter
+$ npm run migration:revert
 ```
 ## Test
 
@@ -70,6 +75,7 @@ $ npm run test:cov
     * Create
     * Update
     * Deactivate
+
   #Account:
   - create entity, controller, test service, test controller, service and module
   - service and controller : 
