@@ -19,6 +19,6 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect('Hello World!');
+      .expect('Hello, I would like to present my project for the developer position challenge at Catalisa.I am very excited about carrying out this little project.');
   });
 });

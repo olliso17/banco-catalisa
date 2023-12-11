@@ -1,33 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import * as bcrypt from 'bcryptjs';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AccountService } from 'src/account/account.service';
 import { Account } from 'src/account/entities/account.entity';
 import { Historic } from 'src/historic/entities/historic.entity';
-import * as bcrypt from 'bcryptjs';
-
-describe('UsersService', () => {
-  let service: UsersService;
+describe('UserService', () => {
+  let userService: UsersService;
   let userRepository: Repository<User>;
   let accountRepository: Repository<Account>;
-  let historicRepository: Repository<Historic>;
+  let historicRepository: Repository<Historic>; 
 
-  const mockUserRepository = {
-    create: jest.fn(),
-    findOne: jest.fn(),
-    findOneOrFail: jest.fn(),
-    save: jest.fn(),
-  };
-
-  const mockAccountRepository = {
-    save: jest.fn(),
-  };
-
-  const mockHistoricRepository = {
-    save: jest.fn(),
+  const createUserDto: CreateUserDto = {
+    cpf: '12345678900',
+    password: 'password123',
   };
 
   beforeEach(async () => {
@@ -36,85 +26,124 @@ describe('UsersService', () => {
         UsersService,
         {
           provide: getRepositoryToken(User),
-          useValue: mockUserRepository,
+          useClass: Repository,
         },
         {
           provide: getRepositoryToken(Account),
-          useValue: mockAccountRepository,
+          useClass: Repository,
         },
         {
           provide: getRepositoryToken(Historic),
-          useValue: mockHistoricRepository,
+          useClass: Repository,
         },
       ],
     }).compile();
 
-    service = module.get<UsersService>(UsersService);
+    userService = module.get<UsersService>(UsersService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     accountRepository = module.get<Repository<Account>>(getRepositoryToken(Account));
     historicRepository = module.get<Repository<Historic>>(getRepositoryToken(Historic));
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('create', () => {
-    it('should create a new user', async () => {
-      const createUserDto: CreateUserDto = {
-        cpf:"021",
-        password: "akdhkahsdka",
-      };
+    it('should create a new user', () => {
 
-      mockUserRepository.create.mockReturnValue(createUserDto);
-      mockUserRepository.save.mockReturnValue(createUserDto);
+      const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye";
+      createUserDto.cpf = bcrypt.hashSync(createUserDto.cpf, salt);
+      createUserDto.password = bcrypt.hashSync(createUserDto.password, salt);
+      const createdUser = new User({
+        cpf: createUserDto.cpf,
+        password: createUserDto.password
+      })
 
-      const result = await service.create(createUserDto);
+      const createUserSpy = jest.spyOn(userRepository, 'create').mockReturnValueOnce(createdUser);
+      const saveUserSpy = jest.spyOn(userRepository, 'save').mockResolvedValueOnce(createdUser);
 
-      expect(result).toEqual(createUserDto);
-      expect(mockUserRepository.create).toHaveBeenCalledWith(createUserDto);
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({ where: { cpf: createUserDto.cpf } });
-      expect(mockUserRepository.save).toHaveBeenCalledWith(createUserDto);
-    });
-
-  });
-
-  describe('update', () => {
-    it('should update user information', async () => {
-      const id = 'sampleId';
-      const updateUserDto: UpdateUserDto = {
-        updated_at: new Date()
-      };
-
-      const user = new User({
-          cpf:"ahahsdhaoshdao",
-          password: "akdhkahsdka",
-      });
-
-      mockUserRepository.findOneOrFail.mockReturnValue(user);
-
-      const result = await service.update(id, updateUserDto);
+      expect(createUserDto.cpf).toEqual(createdUser.cpf);
+      expect(createUserDto.password).toEqual(createdUser.password);
     });
   });
-
   describe('deactivated', () => {
-    it('should deactivate a user and associated accounts/historics', async () => {
-      const id = 'sampleId';
+    it('should deactivate a user and related accounts', async () => {
+      const userId = '1';
+      const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye";
+      createUserDto.cpf = bcrypt.hashSync(createUserDto.cpf, salt);
+      createUserDto.password = bcrypt.hashSync(createUserDto.password, salt);
 
-      const user = new User({
-          cpf:"ahahsdhaoshdao",
-          password: "akdhkahsdka"
+      const existingUser: User = {
+        id: "1",
+        cpf: createUserDto.cpf,
+        password: createUserDto.password,
+        active: true,
+        created_at: new Date(),
+        deactivated_at: null,
+        updated_at: null,
+        accounts: []
+      };
+
+      const findOneSpy = jest.spyOn(userRepository, 'findOneOrFail').mockResolvedValueOnce(existingUser);
+      const saveSpy = jest.spyOn(userRepository, 'save').mockResolvedValueOnce({
+        ...existingUser,
+        active: false,
+        deactivated_at: new Date(),
+        accounts: [],
       });
-      user.active = true;
-      user.accounts = [
-        // Define sample accounts
-      ];
-      mockUserRepository.findOneOrFail.mockReturnValue(user);
-      mockAccountRepository.save.mockResolvedValue(null);
-      mockHistoricRepository.save.mockResolvedValue(null);
 
-      const result = await service.deactivated(id);
+      const deactivatedUser = await userService.deactivated(userId);
+
+      expect(findOneSpy).toHaveBeenCalledWith({ where: { id: userId }, relations: ['accounts', 'accounts.historics'] });
+      expect(saveSpy).toHaveBeenCalledWith({
+        ...existingUser,
+        active: false,
+        deactivated_at: expect.any(Date),
+      });
     });
+  });
+  describe('update', () => {
+    it('should update an existing user', async () => {
+      const updateUserDto: UpdateUserDto = {
+        user_id: "1",
+        updated_at: new Date(),
+      };
 
+      const salt = "$2b$10$ilI3dCqO1g.hMFoRG09Xye";
+      const password = bcrypt.hashSync('newPassword', salt);
+
+      const existingUser: User = {
+        id: "1",
+        cpf: createUserDto.cpf,
+        password: password,
+        active: false,
+        created_at: new Date(),
+        deactivated_at: null,
+        updated_at: null,
+        accounts: []
+      };
+
+      const findOneSpy = jest.spyOn(userRepository, 'findOneOrFail').mockResolvedValueOnce(existingUser);
+      const saveSpy = jest.spyOn(userRepository, 'save').mockResolvedValueOnce({
+        ...existingUser,
+        active: false,
+        password: bcrypt.hashSync('newPassword', salt),
+      });
+
+      const updatedUser = await userService.update(updateUserDto);
+
+      expect(findOneSpy).toHaveBeenCalledWith({ where: { id: '1', active: true }, relations: ['accounts'] });
+      expect(saveSpy).toHaveBeenCalledWith({
+        ...existingUser,
+        active: false,
+        password: bcrypt.hashSync('newPassword', salt),
+      });
+      expect(updatedUser).toEqual({
+        ...existingUser,
+        active: false,
+        password: bcrypt.hashSync('newPassword', salt),
+      });
+    });
   });
 });
+
+
+
+

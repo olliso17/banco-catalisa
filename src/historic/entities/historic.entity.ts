@@ -22,7 +22,7 @@ export class Historic {
     @JoinColumn({ name: 'account_id' })
     account: Account;
 
-    @Column()
+    @Column({nullable:false})
     account_id: string;
 
     @Column({default:false})

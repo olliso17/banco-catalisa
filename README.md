@@ -60,14 +60,28 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+## Swagger
+  http://localhost:3000/api#/
 
 ## Description routes
   #User: 
-  - create entity, controller, service and module.
-  - service : 
-    * Create, route: http://localhost:3000/users/create
-    * Update, route: http://localhost:3000/users/update/{id}
-    * Deactivate, route: http://localhost:3000/users/deactivate/{id}
+  - create entity, controller, service, test service, test controller, and module.
+  - service and controller : 
+    * Create
+    * Update
+    * Deactivate
+  #Account:
+  - create entity, controller, test service, test controller, service and module
+  - service and controller : 
+    * Create
+    * FindAll
+    * Deactivated
+    * Deposit
+    * Withdraw
+    * findByUserId
+    * findOne
+    * findByDeposit
+    * findByWithdraw
 
 ## Stay in touch
 

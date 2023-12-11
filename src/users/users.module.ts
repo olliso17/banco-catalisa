@@ -8,7 +8,8 @@ import { Historic } from 'src/historic/entities/historic.entity';
 
 @Module({
   imports:[
-    TypeOrmModule.forFeature([User, Account, Historic])
+    TypeOrmModule.forFeature([User, Account, Historic]),
+    
   ],
   controllers: [UsersController],
   providers: [UsersService],

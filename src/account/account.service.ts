@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { Account } from './entities/account.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Historic } from 'src/historic/entities/historic.entity';
 import { DepositAccountDto } from './dto/deposit-account.dto';
-import { WithdrawAccountDto } from './dto/withdraw-account';
 import { User } from 'src/users/entities/user.entity';
+import { withdrawAccountDto } from './dto/withdraw-account.dto';
 
 @Injectable()
 export class AccountService {
@@ -19,7 +19,7 @@ export class AccountService {
     private userRepository: Repository<User>,
   ) { }
 
-  async create(createAccountDto: CreateAccountDto):Promise<Account>{
+  async create(createAccountDto: CreateAccountDto): Promise<Account> {
     try {
       let lastAccountNumber = 0;
       const newAccountNumber = lastAccountNumber + 1;
@@ -38,11 +38,11 @@ export class AccountService {
       const accounts = await this.accountRepository.find({
         order: { created_at: 'DESC' },
       });
-     
-      if(accounts.length > 0){
+
+      if (accounts.length > 0) {
         accounts.map(
-          async accountCreated=>{
-            if(accountCreated.id !== account.id){
+          async accountCreated => {
+            if (accountCreated.id !== account.id) {
               const newAccountNumber = parseFloat(accountCreated.number_account) + 1;
               const paddedNumber = newAccountNumber.toString().padStart(6, '0');
               account.number_account = `0000${paddedNumber}`.slice(-6);
@@ -50,60 +50,56 @@ export class AccountService {
               if (account.type === 'Corrente') {
                 account.valueType = '001';
               }
-        
+
               if (account.type === 'Poupança') {
                 account.valueType = '005';
               }
-        
+
               await this.accountRepository.save(account);
-        
+
               if (account.balance > 0) {
-        
+
                 const historic: Historic = this.historicRepository.create({
                   account_id: account.id,
                   value_deposit: true,
                   ammount: account.balance,
                 });
-        
+
                 await this.historicRepository.save(historic);
-        
+
               }
-        
+
               return account;
             }
           }
         );
       }
-      if(accounts.length ===0){
-        
-        account.number_account = `0000${paddedNumber}`.slice(-6);
 
-        if (account.type === 'Corrente') {
-          account.valueType = '001';
-        }
-  
-        if (account.type === 'Poupança') {
-          account.valueType = '005';
-        }
-  
-        await this.accountRepository.save(account);
-  
-        if (parseFloat(account.balance.toString()) > 0) {
-  
-          const historic: Historic = this.historicRepository.create({
-            account_id: account.id,
-            value_deposit: true,
-            ammount: account.balance,
-          });
-  
-          await this.historicRepository.save(historic);
-  
-        }
-        console.log(`${account.balance}`)
-  
-        return account;
+      account.number_account = `0000${paddedNumber}`.slice(-6);
+
+      if (account.type === 'Corrente') {
+        account.valueType = '001';
       }
 
+      if (account.type === 'Poupança') {
+        account.valueType = '005';
+      }
+
+      await this.accountRepository.save(account);
+
+      if (parseFloat(account.balance.toString()) > 0) {
+
+        const historic: Historic = this.historicRepository.create({
+          account_id: account.id,
+          value_deposit: true,
+          ammount: account.balance,
+        });
+
+        await this.historicRepository.save(historic);
+
+      }
+
+      return account;
 
     } catch (error) {
 
@@ -122,7 +118,7 @@ export class AccountService {
       if (!account) {
         throw new Error('Account not found');
       }
-      
+
       const historic = await this.historicRepository.create(depositAccountDto);
       account.balance = parseFloat(account.balance.toString());
       historic.ammount = parseFloat(historic.ammount.toString());
@@ -141,10 +137,10 @@ export class AccountService {
 
   }
 
-  async withdraw(withdrawAccountDto: WithdrawAccountDto) {
+  async withdraw(withdrawAccountDto: withdrawAccountDto) {
     try {
 
-      const account = await this.accountRepository.findOne({ where: { id:withdrawAccountDto.account_id } });
+      const account = await this.accountRepository.findOne({ where: { id: withdrawAccountDto.account_id } });
 
       if (!account) {
         throw new Error('Account not found');
@@ -199,7 +195,7 @@ export class AccountService {
 
     }
   }
-  
+
   async findOne(id: string) {
     try {
 
@@ -217,7 +213,7 @@ export class AccountService {
     try {
 
       const historics = await this.historicRepository.find({
-         where: { account_id:account_id, value_deposit:true}
+        where: { account_id: account_id, value_deposit: true }
       });
 
       return historics;
@@ -232,7 +228,7 @@ export class AccountService {
     try {
 
       const historics = await this.historicRepository.find({
-         where: { account_id:account_id, value_withdraw:true}
+        where: { account_id: account_id, value_withdraw: true }
       });
 
       return historics;
@@ -244,7 +240,46 @@ export class AccountService {
     }
   }
 
-  // remove(id: string) {
-  //   return `This action removes a  account`;
-  // }
+  async deactivated(id: string) {
+    try {
+      const account = await this.accountRepository.findOneOrFail({
+        where: { id }, relations: ['historics']
+      });
+
+      if (!account) {
+
+        throw new NotFoundException('Account not found');
+
+      }
+
+      if (account.active === false) {
+        throw new NotFoundException('Account is already deactivated');
+
+      }
+      account.active = false;
+
+      account.deactivated_at = new Date();
+
+
+
+      account.historics.map(async historic => {
+        if (historic.active === true) {
+
+          historic.active = false;
+
+          historic.deactivated_at = new Date();
+
+          await this.historicRepository.save(historic);
+
+        }
+
+      });
+
+      return this.accountRepository.save(account);
+    } catch (error) {
+
+      throw new NotFoundException(error);
+
+    }
+  }
 }

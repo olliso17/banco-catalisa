@@ -3,8 +3,10 @@ import { AccountService } from './account.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { DepositAccountDto } from './dto/deposit-account.dto';
-import { WithdrawAccountDto } from './dto/withdraw-account';
+import { ApiTags } from '@nestjs/swagger';
+import { withdrawAccountDto } from './dto/withdraw-account.dto';
 
+@ApiTags('accounts')
 @Controller('accounts')
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
@@ -42,7 +44,7 @@ export class AccountController {
     }
     
   }
-  @Get('user_id/:user_id')
+  @Get(':user_id')
   async findByUserId(@Param('user_id') user_id: string) {
 
     try {
@@ -106,7 +108,7 @@ export class AccountController {
   }
 
   @Patch('deposit') 
-  async deposit(@Param('id') id: string, @Body() depositAccountDto: DepositAccountDto) {
+  async deposit(@Body() depositAccountDto: DepositAccountDto) {
 
     try {
 
@@ -122,7 +124,7 @@ export class AccountController {
   }
   
   @Patch('withdraw')
-  async withdraw(@Param('id') id: string, @Body() withdrawAccountDto: WithdrawAccountDto) {
+  async withdraw(@Body() withdrawAccountDto: withdrawAccountDto) {
 
     try {
 
@@ -136,8 +138,19 @@ export class AccountController {
     }
   }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.accountService.remove(id);
-  // }
+  @Patch('deactivate/:account_id')
+  async deactivated(@Param('account_id') account_id: string) {
+
+    try {
+
+      await this.accountService.deactivated(account_id);
+
+      return { success: false, message: 'Successfully deactivated' };
+
+    } catch (error) {
+
+      return { success: false, message: error.message };
+
+    }
+  }
 }
